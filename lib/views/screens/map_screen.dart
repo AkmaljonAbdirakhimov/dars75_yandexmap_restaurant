@@ -2,14 +2,14 @@ import 'package:dars75_yandexmap_restaurant/services/yandex_map_service.dart';
 import 'package:flutter/material.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<MapScreen> createState() => _MapScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _MapScreenState extends State<MapScreen> {
   late YandexMapController mapController;
   final searchContoller = TextEditingController();
 
@@ -21,6 +21,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void getSearchSuggestions(String address) async {
+    mapController.toggleUserLayer(visible: true);
     suggestions = await YandexMapService.getSearchSuggestions(address);
     setState(() {});
   }
