@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dars75_yandexmap_restaurant/services/yandex_map_service.dart';
 import 'package:flutter/material.dart';
 import 'package:yandex_mapkit/yandex_mapkit.dart';
@@ -10,37 +12,10 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  late YandexMapController mapController;
   final searchContoller = TextEditingController();
-
+  late YandexMapController mapController;
   List<SuggestItem> suggestions = [];
-
-  void onMapCreated(YandexMapController controller) {
-    mapController = controller;
-    setState(() {});
-  }
-
-  void getSearchSuggestions(String address) async {
-    mapController.toggleUserLayer(visible: true);
-    suggestions = await YandexMapService.getSearchSuggestions(address);
-    setState(() {});
-  }
-
-  void goToLocation(Point? location) {
-    if (location != null) {
-      mapController.moveCamera(
-        animation: const MapAnimation(
-          type: MapAnimationType.smooth,
-        ),
-        CameraUpdate.newCameraPosition(
-          CameraPosition(
-            target: location,
-            zoom: 15,
-          ),
-        ),
-      );
-    }
-  }
+  Point? selectedLocation;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +24,15 @@ class _MapScreenState extends State<MapScreen> {
         children: [
           YandexMap(
             onMapCreated: onMapCreated,
+            onCameraPositionChanged: onCameraPositionChanged,
           ),
+          if (selectedLocation != null)
+            Align(
+              child: Image.asset(
+                "assets/pin.png",
+                width: 50,
+              ),
+            ),
           Align(
             alignment: const Alignment(0, -0.8),
             child: Padding(
@@ -66,8 +49,9 @@ class _MapScreenState extends State<MapScreen> {
                     onChanged: getSearchSuggestions,
                   ),
                   Container(
-                    constraints: const BoxConstraints(
-                      maxHeight: 300,
+                    constraints: BoxConstraints(
+                      maxHeight:
+                          (70 * suggestions.length).clamp(0, 300).toDouble(),
                     ),
                     width: double.infinity,
                     decoration: const BoxDecoration(
@@ -75,6 +59,7 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     child: ListView.builder(
                       itemCount: suggestions.length,
+                      itemExtent: 60,
                       itemBuilder: (ctx, index) {
                         final suggestion = suggestions[index];
                         return ListTile(
@@ -92,6 +77,57 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {},
+        child: const Icon(Icons.add),
+      ),
     );
+  }
+
+  void onMapCreated(YandexMapController controller) async {
+    mapController = controller;
+    await mapController.toggleUserLayer(
+      visible: true,
+      headingEnabled: true,
+      autoZoomEnabled: true,
+    );
+    setState(() {});
+  }
+
+  void onCameraPositionChanged(
+    CameraPosition position,
+    CameraUpdateReason reason,
+    bool finished,
+  ) {
+    if (reason == CameraUpdateReason.gestures) {
+      setState(() {
+        selectedLocation = position.target;
+      });
+    }
+  }
+
+  void getSearchSuggestions(String address) async {
+    suggestions = await YandexMapService.getSearchSuggestions(address);
+    setState(() {});
+  }
+
+  void goToLocation(Point? location) async {
+    if (location != null) {
+      setState(() {
+        selectedLocation = location;
+        suggestions = [];
+      });
+      await mapController.moveCamera(
+        animation: const MapAnimation(
+          type: MapAnimationType.smooth,
+        ),
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: location,
+            zoom: 15,
+          ),
+        ),
+      );
+    }
   }
 }
